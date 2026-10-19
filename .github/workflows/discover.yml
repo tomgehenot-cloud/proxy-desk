@@ -1,7 +1,5 @@
 name: Discover official ZZZ announcements
 on:
-  schedule:
-    - cron: '23 6 * * *'
   workflow_dispatch:
 permissions:
   contents: write
@@ -16,7 +14,12 @@ jobs:
       - run: python scripts/discover_official.py
       - name: Commit detected official announcements
         run: |
-          git add feed/discovered.json
+          if [ -f feed/discovered.json ]; then
+            git add feed/discovered.json
+          else
+            echo 'No discovery file generated; nothing to publish.'
+            exit 0
+          fi
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
