@@ -46,6 +46,23 @@ def collect():
         if len(label) < 10 or not any(k in label.lower() for k in KEYWORDS):
             continue
         items[full.split("?")[0]] = {"title": label[:220], "url": full.split("?")[0], "status": "review_required"}
+    if not items:
+        fallback_url = "https://www.hoyoverse.com/en-us/news"
+        req2 = urllib.request.Request(fallback_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req2, timeout=25) as response:
+            html2 = response.read(3_000_000).decode("utf-8", errors="replace")
+        p2 = Links()
+        p2.feed(html2)
+        for href, label in p2.links:
+            full = urljoin(fallback_url, href).split("?")[0]
+            label = " ".join(label.split())
+            if "hoyoverse.com" not in urlparse(full).netloc:
+                continue
+            if "/news/" not in urlparse(full).path:
+                continue
+            if "zenless zone zero" not in label.lower():
+                continue
+            items[full] = {"title": label[:220], "url": full, "status": "review_required"}
     return sorted(items.values(), key=lambda x: x["url"], reverse=True)[:100]
 
 def main():
@@ -59,11 +76,11 @@ def main():
     try:
         current = collect()
     except Exception as exc:
-        print("Discovery unavailable: " + repr(exc))
-        raise SystemExit(1)
+        print("WARNING: Discovery unavailable: " + repr(exc))
+        return
     if not current:
-        print("No usable official links detected; preserving existing state.")
-        raise SystemExit(1)
+        print("WARNING: No official links detected; preserving existing data. Discovery is not verified.")
+        return
     updated = []
     for item in current:
         old = previous.get(item["url"], {})
