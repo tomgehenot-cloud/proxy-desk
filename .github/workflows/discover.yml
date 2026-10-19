@@ -1,0 +1,25 @@
+name: Discover official ZZZ announcements
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/discover_official.py
+      - name: Commit detected official announcements
+        run: |
+          if ! git diff --quiet -- feed/discovered.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add feed/discovered.json
+            git commit -m "Update official ZZZ announcement discoveries"
+            git push
+          fi
